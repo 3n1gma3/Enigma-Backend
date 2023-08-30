@@ -6,14 +6,14 @@ const jose = require('jose')
 
 async function refreshToken(auth)
 {
-    const pkcs8 = fs.readFileSync("privateKey.pem").toString()
-    var token = fs.readFileSync("jwt.txt")
-    var tokenPayload = token.subarray(37, 205).toString()
+    const pkcs8 = fs.readFileSync("privateKey.pem").toString() //Gets EdDSA key
+    var token = fs.readFileSync("jwt.txt") //Gets last stored Jwt
+    var tokenPayload = token.subarray(21, 256).toString() //Gets the payload of the Jwt
     let text = base64url.decode(tokenPayload).toString()
     var ts = Buffer.from(text)
-    var tsSlice = ts.subarray(86, 96).toString()
-    console.log(tsSlice)
+    var tsSlice = ts.subarray(98, 108).toString()
     var newts = Math.round(Date.now() / 1000)
+    console.log(tsSlice)
     if (parseInt(tsSlice) < newts)
     {
         var payload = {
