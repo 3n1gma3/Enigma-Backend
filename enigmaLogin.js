@@ -155,7 +155,6 @@ function Request(auth)
 }
 function parseTicket(ticketEncrypted,auth)
 {
-
     var saltKey = "h8TIiA65DCO4KUXDSXyFYfbDXvIk0joE"
     var ticketKey = "67WrW8hzXatB9WsJYJnnezaPMbyGBGYE"
     var ticketBuffer = Buffer.from(ticketEncrypted, 'hex')
