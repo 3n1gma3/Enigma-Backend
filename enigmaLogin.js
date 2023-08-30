@@ -178,7 +178,7 @@ async function onLogin(auth,refreshToken)
                 var Auth = {
                     "DeviceId": deviceId,
                     "Version": version,
-                    "Username": username,
+                    "Username": username.toString(),
                     "Token": urlToken.toString(),
                     "JWT": jwtToken,
                     "Timestamp": ts.toString(),
