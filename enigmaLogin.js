@@ -102,34 +102,100 @@ function jwtEnigma(auth,token)
     var jwtE = jwt.sign(payload,jwtKey,{ algorithm: 'HS256' })
     return jwtE
 }
-function onLogin(auth)
+async function onLogin(auth,refreshToken)
 {
-    var key = fs.readFileSync("key.txt").toString() //Key For Tokens
-    var urlToken = createToken(auth,key) //Makes token with key
-    let ParseToken = parseToken(auth,key) //Checks if token is right
-    if (ParseToken == "Expired!") //Returns wrong if token is wrongly generated
+    if (refreshToken == '')   
     {
-        return "Unauthorizated Token!"
-    }
-    if (ParseToken == "Wrong!")
-    {
-        return "Unauthorizated Token!"
+        var key = fs.readFileSync("key.txt").toString() //Key For Tokens
+        var urlToken = createToken(auth,key) //Makes token with key
+        let ParseToken = parseToken(auth,key) //Checks if token is right
+        if (ParseToken == "Expired!") //Returns wrong if token is wrongly generated
+        {
+            return "Unauthorizated Token!"
+        }
+        if (ParseToken == "Wrong!")
+        {
+            return "Unauthorizated Token!"
+        }
+        else
+        {
+            var jwtToken = jwtEnigma(auth,urlToken) //Creates JWT if the token is right
+        }
+        var ts = Date.now()
+        var Auth = {
+            "DeviceId": auth["DeviceId"],
+            "Version": auth["Version"],
+            "Username": "enigma",
+            "Token": urlToken.toString(),
+            "JWT": jwtToken,
+            "Timestamp": ts.toString(),
+            "authSecret": "y0HizT08IAAA"
+        } //Returns new auth for requests
+        return Auth
     }
     else
     {
-        var jwtToken = jwtEnigma(auth,urlToken) //Creates JWT if the token is right
+        var alg = "EdDSA" //Algorithm used for refreshToken
+        var spki = fs.readFileSync("publicKey.pem").toString() //Gets publickey
+        var publicKey = await jose.importSPKI(spki, alg) //Formats key in spki
+        var verifyJwt = await jose.jwtVerify(refreshToken,publicKey) //Verifies jwt
+        var countJwt = verifyJwt.toString().length //Gets length of Jwt
+        var bufferJwt = Buffer.from(refreshToken) //Buffers jwt
+        var slicePayload = bufferJwt.subarray(21, 255) //Gets payload of Jwt
+        var decodedPayload = base64url.decode(slicePayload) //Base64url decodes payload
+        if (countJwt > 10) //checks if Jwt was made correctly
+        {
+            var payloadBuffer = Buffer.from(decodedPayload) //Buffers payload
+            var expirationSlice = payloadBuffer.subarray(98, 108).toString() //Gets expiration
+            var newts = Math.round(Date.now() / 1000) //Gets timestamp right now
+            if (parseInt(expirationSlice) > newts) //Checks if Jwt expired
+            { //ALL SLICES ARE PAYLOAD SPECIFIC, SO YOU NEED TO CONFIGURE THIS
+                var deviceId = payloadBuffer.subarray(133, 173).toString() //DeviceId
+                var authSecret = payloadBuffer.subarray(38, 50).toString() //authSecret
+                var version = "0.55" //Uses current version
+                var username = payloadBuffer.subarray(8, 14) //Username
+                var authToken = {
+                    "DeviceId": deviceId,
+                    "authSecret": authSecret,
+                    "Version": version,
+                    "Username": username
+                }
+                var urlToken = createToken(authToken,key) //Makes token
+                let parsed = parseToken(authToken,key) //Parses token
+                if (parsed == "Expired!") //Returns wrong if token is wrongly generated
+                {
+                    return "Unauthorizated Token!"
+                }
+                if (parsed == "Wrong!")
+                {
+                    return "Unauthorizated Token!"
+                }
+                else
+                {
+                    var jwtToken = jwtEnigma(auth,urlToken) //Creates JWT if the token is right
+                }
+                var ts = Date.now()
+                var Auth = {
+                    "DeviceId": deviceId,
+                    "Version": version,
+                    "Username": username,
+                    "Token": urlToken.toString(),
+                    "JWT": jwtToken,
+                    "Timestamp": ts.toString(),
+                    "authSecret": authSecret
+                }
+                return Auth
+            }
+            else
+            {
+                "Refresh Token Expired!"
+            }
+        }
+        else
+        {
+            return "Refresh token wrong"
+        }
     }
-    var ts = Date.now()
-    var Auth = {
-        "DeviceId": auth["DeviceId"],
-        "Version": auth["Version"],
-        "Username": "enigma",
-        "Token": urlToken.toString(),
-        "JWT": jwtToken,
-        "Timestamp": ts.toString(),
-        "authSecret": "y0HizT08IAAA"
-    } //Returns new auth for requests
-    return Auth
 }
 function getAuthTicket(auth)
 {
