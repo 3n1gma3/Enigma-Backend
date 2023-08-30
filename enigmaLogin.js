@@ -1,15 +1,20 @@
 var crypto = require('crypto')
 var fs = require('fs')
 var jwt = require('jsonwebtoken')
-const base64url = require('base64-url')
+var base64url = require('base64-url')
+const jose = require('jose')
 
-function refreshToken(auth)
+async function refreshToken(auth)
 {
+    const pkcs8 = fs.readFileSync("privateKey.pem").toString()
     var token = fs.readFileSync("jwt.txt")
     var tokenPayload = token.subarray(37, 205).toString()
-    let text = base64url.decode(tokenPayload)
+    let text = base64url.decode(tokenPayload).toString()
+    var ts = Buffer.from(text)
+    var tsSlice = ts.subarray(98, 108).toString()
     var newts = Math.round(Date.now() / 1000)
-    if (text['exp'] < newts)
+    
+    if (Number(tsSlice) < newts)
     {
         var payload = {
             "sub": auth["Username"],
@@ -23,9 +28,10 @@ function refreshToken(auth)
             "exp": Math.round(Date.now() / 1000) + 17280000,
             "iat": Math.round(Date.now() / 1000)
         }
-        const privateKey = fs.readFileSync("privateKey.pem", { encoding: "utf8" });
-        var rToken = jwt.sign(payload,privateKey,{ algorithm: 'ES256' })
-        fs.writeFileSync("jwt.txt", rToken)
+        var alg = "EdDSA";
+        const privateKey = jose.importPKCS8(pkcs8, alg)
+        var rToken = new jose.SignJWT(payload).setProtectedHeader({ alg }).sign(privateKey)
+        fs.writeFileSync("jwt.txt",rToken)
         return rToken
     }
     else
@@ -155,6 +161,7 @@ function Request(auth)
 }
 function parseTicket(ticketEncrypted,auth)
 {
+
     var saltKey = "h8TIiA65DCO4KUXDSXyFYfbDXvIk0joE"
     var ticketKey = "67WrW8hzXatB9WsJYJnnezaPMbyGBGYE"
     var ticketBuffer = Buffer.from(ticketEncrypted, 'hex')
