@@ -7,7 +7,7 @@ Example for the auth:
     "Version": '0.55',
     "Username": 'enigma',
     "authSecret": 'y0HizT08IAAA'
-}
+}.
 DeviceId is a 20 byte hash/uuid, version is the version of your game, username is the users name and the authSecret is the userId encoded in msgpack b64, but you can change this to anything you like.
 
 ```
