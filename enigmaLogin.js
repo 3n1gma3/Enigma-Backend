@@ -25,7 +25,8 @@ async function refreshToken(auth)
             ],
             "nbf": Math.round(Date.now() / 1000),
             "exp": Math.round(Date.now() / 1000) + 17280000,
-            "iat": Math.round(Date.now() / 1000)
+            "iat": Math.round(Date.now() / 1000),
+            "sid": auth["DeviceId"]
         }
         var alg = "EdDSA";
         const privateKey = await jose.importPKCS8(pkcs8, alg)
