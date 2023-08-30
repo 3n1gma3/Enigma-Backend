@@ -12,6 +12,7 @@ async function refreshToken(auth)
     let text = base64url.decode(tokenPayload).toString()
     var ts = Buffer.from(text)
     var tsSlice = ts.subarray(86, 96).toString()
+    console.log(tsSlice)
     var newts = Math.round(Date.now() / 1000)
     if (parseInt(tsSlice) < newts)
     {
@@ -131,7 +132,7 @@ function onLogin(auth)
     } //Returns new auth for requests
     return Auth
 }
-function Request(auth)
+function getAuthTicket(auth)
 {
     var key = fs.readFileSync("key.txt").toString() //Key for token verification
     var ticketKey = "67WrW8hzXatB9WsJYJnnezaPMbyGBGYE" //Key used for encrypting the ticket
@@ -161,7 +162,6 @@ function Request(auth)
 }
 function parseTicket(ticketEncrypted,auth)
 {
-
     var saltKey = "h8TIiA65DCO4KUXDSXyFYfbDXvIk0joE"
     var ticketKey = "67WrW8hzXatB9WsJYJnnezaPMbyGBGYE"
     var ticketBuffer = Buffer.from(ticketEncrypted, 'hex')
@@ -206,4 +206,4 @@ function decrypt(chunk,key) {
 	result = Buffer.concat([decipher.update(chunk), decipher.final()]);
 	return result;
 }
-module.exports = { createToken, parseToken, jwtEnigma, onLogin, Request, parseTicket, encrypt, decrypt, refreshToken};
+module.exports = { createToken, parseToken, jwtEnigma, onLogin, getAuthTicket, parseTicket, encrypt, decrypt, refreshToken};
