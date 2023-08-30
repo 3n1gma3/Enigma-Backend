@@ -11,10 +11,9 @@ async function refreshToken(auth)
     var tokenPayload = token.subarray(37, 205).toString()
     let text = base64url.decode(tokenPayload).toString()
     var ts = Buffer.from(text)
-    var tsSlice = ts.subarray(98, 108).toString()
+    var tsSlice = ts.subarray(86, 96).toString()
     var newts = Math.round(Date.now() / 1000)
-    
-    if (Number(tsSlice) < newts)
+    if (parseInt(tsSlice) < newts)
     {
         var payload = {
             "sub": auth["Username"],
@@ -29,10 +28,10 @@ async function refreshToken(auth)
             "iat": Math.round(Date.now() / 1000)
         }
         var alg = "EdDSA";
-        const privateKey = jose.importPKCS8(pkcs8, alg)
-        var rToken = new jose.SignJWT(payload).setProtectedHeader({ alg }).sign(privateKey)
+        const privateKey = await jose.importPKCS8(pkcs8, alg)
+        var rToken = await new jose.SignJWT(payload).setProtectedHeader({ alg }).sign(privateKey).then()
         fs.writeFileSync("jwt.txt",rToken)
-        return rToken
+        return rToken.toString()
     }
     else
     return token.toString()
