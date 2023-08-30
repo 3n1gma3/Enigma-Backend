@@ -9,12 +9,11 @@ async function refreshToken(auth)
     const pkcs8 = fs.readFileSync("privateKey.pem").toString() //Gets EdDSA key
     var token = fs.readFileSync("jwt.txt") //Gets last stored Jwt
     var tokenPayload = token.subarray(21, 256).toString() //Gets the payload of the Jwt
-    let text = base64url.decode(tokenPayload).toString()
-    var ts = Buffer.from(text)
-    var tsSlice = ts.subarray(98, 108).toString()
-    var newts = Math.round(Date.now() / 1000)
-    console.log(tsSlice)
-    if (parseInt(tsSlice) < newts)
+    let text = base64url.decode(tokenPayload).toString() //Decodes the payload
+    var ts = Buffer.from(text) //Creates buffer of decoded payload
+    var tsSlice = ts.subarray(98, 108).toString() //Gets expiration timestamp from the payload
+    var newts = Math.round(Date.now() / 1000) //Gets current timestamp
+    if (parseInt(tsSlice) < newts) //Checks if expiration time is over
     {
         var payload = {
             "sub": auth["Username"],
@@ -28,11 +27,11 @@ async function refreshToken(auth)
             "exp": Math.round(Date.now() / 1000) + 17280000,
             "iat": Math.round(Date.now() / 1000),
             "sid": auth["DeviceId"]
-        }
-        var alg = "EdDSA";
-        const privateKey = await jose.importPKCS8(pkcs8, alg)
-        var rToken = await new jose.SignJWT(payload).setProtectedHeader({ alg }).sign(privateKey).then()
-        fs.writeFileSync("jwt.txt",rToken)
+        } //Makes payload
+        var alg = "EdDSA"; //Algorithm used for the Jwt
+        const privateKey = await jose.importPKCS8(pkcs8, alg) //Turns key in pkcs8 format
+        var rToken = await new jose.SignJWT(payload).setProtectedHeader({ alg }).sign(privateKey).then() //Creates Jwt token with EdDSA algorithm
+        fs.writeFileSync("jwt.txt",rToken) //Stores the Jwt
         return rToken.toString()
     }
     else
@@ -77,7 +76,7 @@ function parseToken(auth,encryptionKey)
     var tokenNew = crypto.createHash('sha1').update(combine).digest('base64url')
     var newts = Date.now()
     var diff = newts - ts
-    if (diff > 600000)
+    if (diff > 600000) //Checks if token is expired; 10 minutes
     {
         return "Expired!"
     }
@@ -162,23 +161,23 @@ function getAuthTicket(auth)
 }
 function parseTicket(ticketEncrypted,auth)
 {
-    var saltKey = "h8TIiA65DCO4KUXDSXyFYfbDXvIk0joE"
-    var ticketKey = "67WrW8hzXatB9WsJYJnnezaPMbyGBGYE"
-    var ticketBuffer = Buffer.from(ticketEncrypted, 'hex')
-    var ticket = decrypt(ticketBuffer,ticketKey)
-    var newts = Date.now()
-    var deviceIdTicket = ticket.slice(0, 40).toString()
-    var tokenTicket = ticket.slice(40, 67).toString()
-    var timestampTicket = ticket.slice(67, 80).toString()
-    var saltHash = ticket.slice(80).toString()
-    var recreateHash = saltKey + tokenTicket + timestampTicket + auth["authSecret"] + deviceIdTicket
-    var saltHashR = crypto.createHash('sha256').update(recreateHash).digest('hex')
-    var difference = newts - timestampTicket
-    if (difference > 36000)
+    var saltKey = "h8TIiA65DCO4KUXDSXyFYfbDXvIk0joE" //Key for signature
+    var ticketKey = "67WrW8hzXatB9WsJYJnnezaPMbyGBGYE" //Key for ticket decryption
+    var ticketBuffer = Buffer.from(ticketEncrypted, 'hex') //Buffers ticket to hex
+    var ticket = decrypt(ticketBuffer,ticketKey) //Decrypts encrypted ticket
+    var newts = Date.now() //Gets current timestamp
+    var deviceIdTicket = ticket.slice(0, 40).toString() //DeviceId
+    var tokenTicket = ticket.slice(40, 67).toString() //Token
+    var timestampTicket = ticket.slice(67, 80).toString() //Timestamp
+    var saltHash = ticket.slice(80).toString() //Signature
+    var recreateHash = saltKey + tokenTicket + timestampTicket + auth["authSecret"] + deviceIdTicket //Recreates signature
+    var saltHashR = crypto.createHash('sha256').update(recreateHash).digest('hex') //Hash recreated
+    var difference = newts - timestampTicket //Checks time difference from now and when the ticket was made
+    if (difference > 36000) //Checks if ticket expired
     {
         return "Ticket Wrong Or Expired!"
     }
-    if (saltHash == saltHashR)
+    if (saltHash == saltHashR) //If the ticket is rightly made, it will return correct!
     {
         var Ticket = {
             "DeviceId": deviceIdTicket,
@@ -190,7 +189,7 @@ function parseTicket(ticketEncrypted,auth)
     }
     else
     {
-        return "Ticket Wrong Or Expired!"
+        return "Ticket Wrong Or Expired!" //If the ticket is wrong, wrong key, it will return this
     }
 }
 function encrypt(chunk,key) {
